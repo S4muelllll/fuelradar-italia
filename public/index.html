@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07120f">
+  <meta name="description" content="Confronta i prezzi dei carburanti in Italia e trova il distributore più conveniente nella tua zona.">
+  <title>FuelRadar Italia — prezzi carburante live</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3AzcTj3wXU4bXLPfRRYC8B+2Z8j9I=" crossorigin="">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><span>€</span></div>
+        <div>
+          <strong>FuelRadar</strong>
+          <span>ITALIA</span>
+        </div>
+      </div>
+
+      <nav class="side-nav" aria-label="Navigazione">
+        <button class="nav-item active" data-section="home"><span class="nav-icon">⌂</span> Panoramica</button>
+        <button class="nav-item" data-section="map-focus"><span class="nav-icon">⌖</span> Mappa prezzi</button>
+        <button class="nav-item" data-section="alerts"><span class="nav-icon">◉</span> Avvisi live <b class="nav-badge" id="alertBadge">0</b></button>
+      </nav>
+
+      <div class="side-card">
+        <div class="mini-label">FONTE DATI</div>
+        <div class="source-live"><span></span> MIMIT Osservaprezzi</div>
+        <p>I prezzi vengono richiesti direttamente al servizio dell'Osservatorio prezzi carburanti.</p>
+        <a href="https://carburanti.mise.gov.it/ospzSearch/home" target="_blank" rel="noreferrer">Apri fonte ufficiale ↗</a>
+      </div>
+
+      <div class="sidebar-foot">Dati live · nessun prezzo inventato</div>
+    </aside>
+
+    <main class="main" id="home">
+      <header class="topbar">
+        <button class="icon-btn menu-btn" id="menuBtn" aria-label="Apri menu">☰</button>
+        <div class="topbar-location" id="locationChip">Posizione non impostata</div>
+        <div class="top-actions">
+          <button class="icon-btn" id="notifyBtn" title="Attiva notifiche">🔔</button>
+          <button class="icon-btn" id="refreshBtn" title="Aggiorna adesso">↻</button>
+        </div>
+      </header>
+
+      <section class="hero-section">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="pulse-dot"></span> PREZZI AGGIORNATI AUTOMATICAMENTE</div>
+          <h1>Trova il rifornimento<br><em>più conveniente.</em></h1>
+          <p>Confronta i distributori nella tua zona, guarda la distanza e scopri dove conviene fare il pieno.</p>
+
+          <div class="search-wrap">
+            <div class="search-field">
+              <span class="search-icon">⌕</span>
+              <input id="searchInput" autocomplete="off" placeholder="Cerca città, indirizzo o CAP…" />
+              <button id="searchBtn" class="search-btn">Cerca</button>
+            </div>
+            <div class="search-results" id="searchResults"></div>
+            <button class="locate-btn" id="locateBtn"><span>◎</span> Usa la mia posizione</button>
+          </div>
+        </div>
+
+        <div class="live-orb">
+          <div class="orb-ring"></div>
+          <div class="orb-inner">
+            <div class="orb-label">Miglior prezzo</div>
+            <div class="orb-price" id="heroBestPrice">—</div>
+            <div class="orb-fuel" id="heroBestFuel">in attesa</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls-row">
+        <div class="fuel-tabs" id="fuelTabs">
+          <button class="fuel-tab active" data-fuel="1-x"><span class="fuel-glyph">⛽</span><span>Benzina</span></button>
+          <button class="fuel-tab" data-fuel="2-x"><span class="fuel-glyph">◈</span><span>Diesel</span></button>
+          <button class="fuel-tab" data-fuel="4-x"><span class="fuel-glyph">⌁</span><span>GPL</span></button>
+          <button class="fuel-tab" data-fuel="3-x"><span class="fuel-glyph">♢</span><span>Metano</span></button>
+        </div>
+        <div class="radius-control">
+          <label for="radius">Raggio <strong id="radiusValue">10 km</strong></label>
+          <input id="radius" type="range" min="1" max="10" step="1" value="10">
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card accent">
+          <div><span class="stat-label">MIGLIOR PREZZO</span><strong id="bestPrice">—</strong><span class="stat-sub" id="bestStation">Cerca una zona</span></div>
+          <span class="stat-icon">↯</span>
+        </article>
+        <article class="stat-card">
+          <div><span class="stat-label">MEDIA ZONA</span><strong id="avgPrice">—</strong><span class="stat-sub" id="avgDelta">—</span></div>
+          <span class="stat-icon">∼</span>
+        </article>
+        <article class="stat-card">
+          <div><span class="stat-label">DISTRIBUTORI</span><strong id="stationCount">—</strong><span class="stat-sub">con il carburante selezionato</span></div>
+          <span class="stat-icon">⌖</span>
+        </article>
+        <article class="stat-card">
+          <div><span class="stat-label">ULTIMO DATO</span><strong id="lastUpdate">—</strong><span class="stat-sub" id="lastUpdateSub">Fonte live</span></div>
+          <span class="stat-icon">◷</span>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article class="map-card" id="map-focus">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">MAPPA PREZZI</span>
+              <h2>Dove conviene fare rifornimento</h2>
+            </div>
+            <button class="ghost-btn" id="fitMapBtn">Vedi tutti</button>
+          </div>
+          <div id="map" class="map"></div>
+          <div class="map-legend"><span><i class="legend-dot best"></i> miglior prezzo</span><span><i class="legend-dot normal"></i> altri distributori</span><span><i class="legend-dot you"></i> tua posizione</span></div>
+        </article>
+
+        <article class="list-card">
+          <div class="section-head list-head">
+            <div>
+              <span class="section-kicker">CONFRONTO</span>
+              <h2 id="listTitle">I più convenienti</h2>
+            </div>
+            <div class="live-status"><span class="live-dot"></span><span id="dataStatus">Live</span></div>
+          </div>
+          <div id="stationList" class="station-list">
+            <div class="empty-state"><div class="empty-icon">⌖</div><h3>Imposta una posizione</h3><p>Usa la geolocalizzazione o cerca una città per vedere i prezzi reali.</p></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="alerts-card" id="alerts">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">MONITORAGGIO</span>
+            <h2>Avvisi sul prezzo</h2>
+          </div>
+          <label class="switch-row"><span>Controllo automatico</span><input id="autoRefresh" type="checkbox" checked><i></i></label>
+        </div>
+        <div class="alert-settings">
+          <div class="threshold">
+            <span>Avvisami quando il miglior prezzo cambia di almeno</span>
+            <div class="threshold-input"><input id="threshold" type="number" min="0.001" step="0.001" value="0.005"><span>€/L</span></div>
+          </div>
+          <div class="alert-info"><span>ℹ</span><span>Gli avvisi vengono generati confrontando i dati live tra un aggiornamento e l'altro. Le notifiche del browser richiedono il tuo consenso.</span></div>
+        </div>
+        <div id="alertFeed" class="alert-feed"><div class="feed-empty">Nessun cambiamento rilevato ancora.</div></div>
+      </section>
+
+      <footer class="footer">
+        <span>FuelRadar Italia</span><span>·</span><span>Prezzi da Osservaprezzi MIMIT</span><span>·</span><a href="https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-prezzi-praticati-e-anagrafica-degli-impianti" target="_blank" rel="noreferrer">Open data</a>
+      </footer>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card">
+      <button class="modal-close" data-close-modal>×</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/app.js"></script>
+</body>
+</html>
